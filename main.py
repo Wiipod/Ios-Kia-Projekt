@@ -47,6 +47,7 @@ VEHICLE_ID = os.environ.get("VEHICLE_ID")
 if not VEHICLE_ID:
     if not vehicle_manager.vehicles:
         raise ValueError("No vehicles found in the account. Please ensure your Kia account has at least one vehicle.")
+    # Fetch the first vehicle ID
     VEHICLE_ID = next(iter(vehicle_manager.vehicles.keys()))
     print(f"No VEHICLE_ID provided. Using the first vehicle found: {VEHICLE_ID}")
 
@@ -101,32 +102,6 @@ def list_vehicles():
         print(f"Error in /list_vehicles: {e}")
         return jsonify({"error": str(e)}), 500
 
-# Climate Control Request Options
-class ClimateRequestOptions:
-    def __init__(self, 
-                 set_temp: float = 22,  # Temperature in Celsius
-                 duration: int = 10,    # Duration in minutes
-                 air_condition: bool = False,
-                 defrost: bool = False,
-                 steering_wheel_heater: bool = False,
-                 rear_window_heater: bool = False,
-                 side_mirror_heater: bool = False,
-                 front_left_seat_status: str = None,
-                 front_right_seat_status: str = None,
-                 rear_left_seat_status: str = None,
-                 rear_right_seat_status: str = None):
-        self.set_temp = set_temp
-        self.duration = duration
-        self.air_condition = air_condition
-        self.defrost = defrost
-        self.steering_wheel_heater = steering_wheel_heater
-        self.rear_window_heater = rear_window_heater
-        self.side_mirror_heater = side_mirror_heater
-        self.front_left_seat_status = front_left_seat_status
-        self.front_right_seat_status = front_right_seat_status
-        self.rear_left_seat_status = rear_left_seat_status
-        self.rear_right_seat_status = rear_right_seat_status
-
 # Start climate endpoint
 @app.route('/start_climate', methods=['POST'])
 def start_climate():
@@ -140,40 +115,13 @@ def start_climate():
         print("Refreshing vehicle states...")
         vehicle_manager.update_all_vehicles_with_cached_state()
 
-        # Check the incoming JSON body for climate control options
-        data = request.get_json()
-
-        # Extract the relevant climate control options
-        set_temp = data.get("set_temp", 22)
-        duration = data.get("duration", 10)
-        defrost = data.get("defrost", False)
-        air_condition = data.get("air_condition", False)
-        steering_wheel_heater = data.get("steering_wheel_heater", False)
-        rear_window_heater = data.get("rear_window_heater", False)
-        side_mirror_heater = data.get("side_mirror_heater", False)
-
-        # Seat heater statuses (could be None or "On"/"Off")
-        front_left_seat_status = data.get("front_left_seat_status", None)
-        front_right_seat_status = data.get("front_right_seat_status", None)
-        rear_left_seat_status = data.get("rear_left_seat_status", None)
-        rear_right_seat_status = data.get("rear_right_seat_status", None)
-
-        # Create the ClimateRequestOptions object with all relevant parameters
+        # Create ClimateRequestOptions object
         climate_options = ClimateRequestOptions(
-            set_temp=set_temp,
-            duration=duration,
-            defrost=defrost,
-            air_condition=air_condition,
-            steering_wheel_heater=steering_wheel_heater,
-            rear_window_heater=rear_window_heater,
-            side_mirror_heater=side_mirror_heater,
-            front_left_seat_status=front_left_seat_status,
-            front_right_seat_status=front_right_seat_status,
-            rear_left_seat_status=rear_left_seat_status,
-            rear_right_seat_status=rear_right_seat_status
+            set_temp=22,  # Set temperature in Celsius
+            duration=10   # Duration in minutes
         )
 
-        # Start the climate control based on the options
+        # Start climate control using the VehicleManager's start_climate method
         result = vehicle_manager.start_climate(VEHICLE_ID, climate_options)
         print(f"Start climate result: {result}")
 
