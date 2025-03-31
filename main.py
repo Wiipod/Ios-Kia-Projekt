@@ -61,47 +61,6 @@ def log_request_info():
 def root():
     return jsonify({"status": "Welcome to the Kia Vehicle Control API"}), 200
 
-# List vehicles endpoint
-@app.route('/list_vehicles', methods=['GET'])
-def list_vehicles():
-    print("Received request to /list_vehicles")
-
-    if request.headers.get("Authorization") != SECRET_KEY:
-        print("Unauthorized request: Missing or incorrect Authorization header")
-        return jsonify({"error": "Unauthorized"}), 403
-
-    try:
-        print("Refreshing vehicle states...")
-        vehicle_manager.update_all_vehicles_with_cached_state()
-
-        vehicles = vehicle_manager.vehicles
-        print(f"Vehicles data: {vehicles}")  # Log the vehicles data
-
-        if not vehicles:
-            print("No vehicles found in the account")
-            return jsonify({"error": "No vehicles found"}), 404
-
-        # Iterate over the dictionary values (Vehicle objects)
-        vehicle_list = [
-            {
-                "name": v.name,
-                "id": v.id,
-                "model": v.model,
-                "year": v.year
-            }
-            for v in vehicles.values()  # Use .values() to get the Vehicle objects
-        ]
-
-        if not vehicle_list:
-            print("No valid vehicles found in the account")
-            return jsonify({"error": "No valid vehicles found"}), 404
-
-        print(f"Returning vehicle list: {vehicle_list}")
-        return jsonify({"status": "Success", "vehicles": vehicle_list}), 200
-    except Exception as e:
-        print(f"Error in /list_vehicles: {e}")
-        return jsonify({"error": str(e)}), 500
-
 # Start climate endpoint
 @app.route('/start_climate', methods=['POST'])
 def start_climate():
@@ -115,10 +74,25 @@ def start_climate():
         print("Refreshing vehicle states...")
         vehicle_manager.update_all_vehicles_with_cached_state()
 
-        # Create ClimateRequestOptions object with default settings (can be customized)
+        # Extract climate options from request body (if provided)
+        data = request.json
+        set_temp = data.get("set_temp", 22)  # Default to 22 if not provided
+        duration = data.get("duration", 10)  # Default to 10 minutes if not provided
+        enable_defrost = data.get("defrost", True)  # Enable defrost by default
+        enable_air_condition = data.get("air_condition", True)  # Air conditioning
+        enable_steering_wheel_heater = data.get("steering_wheel_heater", True)  # Steering wheel heater
+        enable_rear_window_heater = data.get("rear_window_heater", True)  # Rear window heater
+        enable_side_mirror_heater = data.get("side_mirror_heater", True)  # Side mirror heater
+
+        # Create ClimateRequestOptions object with all settings
         climate_options = ClimateRequestOptions(
-            set_temp=22,  # Set temperature in Celsius
-            duration=10   # Duration in minutes
+            set_temp=set_temp,  # Set temperature in Celsius
+            duration=duration,  # Duration in minutes
+            defrost_is_on=enable_defrost,  # Enable defrost
+            air_condition_is_on=enable_air_condition,  # Enable air condition
+            steering_wheel_heater_is_on=enable_steering_wheel_heater,  # Enable steering wheel heater
+            back_window_heater_is_on=enable_rear_window_heater,  # Enable rear window heater
+            side_mirror_heater_is_on=enable_side_mirror_heater  # Enable side mirror heater
         )
 
         # Start climate control using the VehicleManager's start_climate method
